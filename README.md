@@ -9,4 +9,6 @@ Mitchell Nursey: https://github.com/mnursey/b-snake
 
 These test snakes were modified to conform to requirements.
 
-Just run the thing and download requirements till it works. It's ~300 lines of code, read it to figure out how it works. If there's any insterest I'll formalize this repository.
+
+
+Must have monospaced font in your terminal. Just run the thing and download requirements till it works. It's ~300 lines of code, read it to figure out how it works. If there's any insterest I'll formalize this repository.
