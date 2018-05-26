@@ -1,11 +1,9 @@
-import numpy as np
 import random
 import time
 from TestSnakes.BattleJake2018.Jake2018 import Jake2018
 from TestSnakes.SimpleJake.SimpleJake import SimpleJake
 from TestSnakes.MitchellNursey.MitchellNursey import MitchellNursey
 from TestSnakes.SajanDinsa.SajanDinsa import SajanDinsa
-from TestSnakes.MimicMitchellNursey.MimicMitchellNursey import MimicMitchellNursey
 
 '''
 
@@ -324,29 +322,32 @@ class Snake():
             self.health = self.health -1
         self.ateFood = False
  
-       
-gameWinners = []
-for i in range(1000):
-    print("*"+ str(i) + "*")
-    s = BattleSnake()
-    s.add_snake(Snake("Jake2018", color=COLORS["blue"]), Jake2018())
-    s.add_snake(Snake("SimpleJake", color=COLORS["cyan"]), SimpleJake())
-    s.add_snake(Snake("MimicMitchellNursey", color=COLORS["yellow"]), MimicMitchellNursey(i))
-    s.add_snake(Snake("SajanDinsa", color=COLORS["red"]), SajanDinsa())
-    try:
-        gameWinners.append(s.start_game(speed=100, outputBoard=False, debug=False))
-    except Exception as e:
-        print("FAILURE: ", e)
+"""
+if __name__ == "__main__":
+    gameWinners = []
+    for i in range(1000):
+        print("*"+ str(i) + "*")
+        s = BattleSnake()
+        s.add_snake(Snake("Jake2018", color=COLORS["blue"]), Jake2018())
+        s.add_snake(Snake("SimpleJake", color=COLORS["cyan"]), SimpleJake())
+        s.add_snake(Snake("MitchellNursey", color=COLORS["yellow"]), MitchellNursey(i))
+        s.add_snake(Snake("SajanDinsa", color=COLORS["red"]), SajanDinsa())
+        try:
+            gameWinners.append(s.start_game(speed=100, outputBoard=False, debug=False))
+        except Exception as e:
+            print("FAILURE: ", e)
  
-homies = ["Jake2018", "SimpleJake", "MimicMitchellNursey", "SajanDinsa"]
-for h in homies:
-    print(h, sum([1 for s in gameWinners if s == h]))
+    homies = ["Jake2018", "SimpleJake", "MitchellNursey", "SajanDinsa"]
+    for h in homies:
+        print(h, sum([1 for s in gameWinners if s == h]))
+"""
 
-#s = BattleSnake(food=20)
-#s.add_snake(Snake("SimpleJake", color=COLORS["cyan"]), SimpleJake())
-#s.add_snake(Snake("MimicMitchellNursey", color=COLORS["yellow"]), MimicMitchellNursey())
-#s.add_snake(Snake("SajanDinsa", color=COLORS["red"]), SajanDinsa())
-#s.add_snake(Snake("Jake2018", color=COLORS["blue"]), Jake2018())
-#s.start_game(speed=25, outputBoard=True, debug=False)
+if __name__ == "__main__":
+    s = BattleSnake(food=20)
+    s.add_snake(Snake("SimpleJake", color=COLORS["cyan"]), SimpleJake())
+    s.add_snake(Snake("MitchellNursey", color=COLORS["yellow"]), MitchellNursey())
+    s.add_snake(Snake("SajanDinsa", color=COLORS["red"]), SajanDinsa())
+    s.add_snake(Snake("Jake2018", color=COLORS["blue"]), Jake2018())
+    s.start_game(speed=25, outputBoard=True, debug=False)
 
 	    
