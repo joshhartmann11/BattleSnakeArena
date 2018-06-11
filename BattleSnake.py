@@ -188,8 +188,8 @@ class BattleSnake():
         for s in self.snakes:
             head = s["snake"].body[0]
             if( head[0] < 0 or head[1] < 0 or
-                head[0] > self.dims["width"] or
-                head[1] > self.dims["height"]):
+                head[0] >= self.dims["width"] or
+                head[1] >= self.dims["height"]):
                 delSnakes.append(s)
                 
         self.delete_snakes(delSnakes, reason="WALL COLLISION")
