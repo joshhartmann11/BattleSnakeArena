@@ -5,7 +5,6 @@ from threading import Thread
 import TestSnakes.BattleJake2018.Jake2018
 import TestSnakes.SimpleJake.SimpleJake
 import TestSnakes.MitchellNursey.MitchellNursey
-import WorkingSnakes.battleJake2019.Jake2019
 
 '''
 
