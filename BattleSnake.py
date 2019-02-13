@@ -1,9 +1,11 @@
 import random
 import time
+import traceback
+from threading import Thread
 import TestSnakes.BattleJake2018.Jake2018
 import TestSnakes.SimpleJake.SimpleJake
 import TestSnakes.MitchellNursey.MitchellNursey
-import TestSnakes.SajanDinsa.SajanDinsa
+import WorkingSnakes.battleJake2019.Jake2019
 
 '''
 
@@ -27,7 +29,7 @@ DEFAULT_COLOR = "\033[0m"
 
 class BattleSnake():
 
-    def __init__(self, dims=[20,20], food=15):
+    def __init__(self, dims=[20,20], food=5):
         self.dims = {"width": dims[0], "height": dims[1]}
         self.snakes = []
         self.turn = 0
@@ -68,21 +70,28 @@ class BattleSnake():
         self.snakes.append(snake)
 
 
+    # Move a single snake
+    def move_snake(self, snake, json):
+        input = self.specific_board_json(snake, json)
+        try:
+            output = snake.getMove(input)
+        except Exception as e:
+            traceback.print_tb(e.__traceback__)
+            output = {"move": "up"}
+        snake.move(output["move"])
+
+
     # Move snakes
     def move_snakes(self, debug=False):
         json = self.generic_board_json()
-        for s in self.snakes:
-            input = self.specific_board_json(s, json)
-            if(not debug):
-                try:
-                    output = s.getMove(input)
-                except Exception as e:
-                    print("Exception in ", s.id, ":", e)
-                    output = {"move": "up"}
-                s.move(output["move"])
-            else:
-                output = s["ai"].move(input)
-                s.move(output["move"])
+        threads = []
+        for i, snake in enumerate(self.snakes):
+            process = Thread(target=self.move_snake, args=(snake, json))
+            process.start()
+            threads.append(process)
+
+        for process in threads:
+            process.join()
 
         self.check_food()
         self.detect_death()
@@ -94,22 +103,16 @@ class BattleSnake():
     def delete_snakes(self, snakes, reason=None):
 
         if not snakes == []:
-            if not reason == None:
-                print(reason)
             for s in snakes:
-                self.snakes.remove(s)
+                if s in self.snakes:
+                    self.snakes.remove(s)
 
 
     # Checks to see if there's a winner
     def check_winner(self, solo):
         if(len(self.snakes) == 1 and not solo):
-            print("Game Over\nWinner: " + self.snakes[0].id)
             return True
         if(len(self.snakes) == 0):
-            if solo:
-                print("Game Over")
-            else:
-                print("Game Over\nTie")
             return True
         return False
 
@@ -128,41 +131,34 @@ class BattleSnake():
             if outputBoard:
                 s.print_board()
                 print("\n" + BORDER_COLOR + " " * 2 * self.dims["width"] + "    " + DEFAULT_COLOR + "\n", end="")
+                print(DEFAULT_COLOR) # Restore default coloring to terminal
 
             if self.check_winner(solo):
                 break
 
-            while(time.time()-t1 <= (100-speed)/800):
+            while(time.time()-t1 <= float(100-speed)/float(100)):
                 pass
 
-        print(DEFAULT_COLOR) # Restore default coloring to terminal
         if not len(self.snakes) == 0:
             return(self.snakes[0].id)
 
 
     # Resolve Head-on-head Collisions
     def resolve_head_collisions(self):
-        allHeads = []
-        for s in self.snakes:
-            allHeads.append(s.body[0])
 
         delSnakes = []
         for s1 in self.snakes:
-            s1head = s1.body[0]
-            heads = list(allHeads)
-            heads.remove(s1head)
-            if s1head in heads:
-                s1len = len(s1.body)
+            for s2 in self.snakes:
+                if s1 != s2:
+                    if s2.body[0] == s1.body[0]:
+                        if len(s1.body) > len(s2.body):
+                            delSnakes.append(s2)
 
-                s2 = self.snakes[heads.index(s1head)]
-                ind = heads.index(s1head)
-                s2len = len(self.snakes[ind].body)
-
-                if s1len >= s2len and s1 not in delSnakes:
-                    delSnakes.append(s1)
-
-                if s2len >= s1len and s2 not in delSnakes:
-                    delSnakes.append(s2)
+                        elif len(s1.body) < len(s2.body):
+                            delSnakes.append(s1)
+                        else:
+                            delSnakes.append(s1)
+                            delSnakes.append(s2)
 
         self.delete_snakes(delSnakes, reason="HEAD-ON-HEAD")
 
@@ -219,8 +215,9 @@ class BattleSnake():
             for s in self.snakes:
                 if f in s.body:
                     s.ateFood = True
-                    self.food.remove(f)
-                    self.add_food()
+                    if f in self.food:
+                        self.food.remove(f)
+                        self.add_food()
 
 
     # Jsonize food
@@ -257,9 +254,9 @@ class BattleSnake():
         food = self.food
 
         print(BORDER_COLOR + " " * 2 * self.dims["width"] + "    " + DEFAULT_COLOR, end="")
-        for i in range(self.dims["width"]):
+        for j in range(self.dims["height"]):
 	        print("\n" + BORDER_COLOR + "  " + DEFAULT_COLOR, end="")
-	        for j in range(self.dims["height"]):
+	        for i in range(self.dims["width"]):
 
 	            if ((i, j)) in food:
 	                print(FOOD_COLOR + "  " + DEFAULT_COLOR, end="")
@@ -328,25 +325,31 @@ if __name__ == "__main__":
     gameWinners = []
     for i in range(1000):
         print("*"+ str(i) + "*")
-        s = BattleSnake()
-        s.add_snake(Snake("Jake2018", color=COLORS["blue"]), Jake2018())
-        s.add_snake(Snake("SimpleJake", color=COLORS["cyan"]), SimpleJake())
-        s.add_snake(Snake("MitchellNursey", color=COLORS["yellow"]), MitchellNursey(i))
-        s.add_snake(Snake("SajanDinsa", color=COLORS["red"]), SajanDinsa())
+        s = BattleSnake(food=10)
+        s.add_snake(Snake(TestSnakes.BattleJake2018.Jake2018.move, "Jake2018", color=COLORS["cyan"]))
+        s.add_snake(Snake(TestSnakes.MitchellNursey.MitchellNursey.move, "MitchellNursey", color=COLORS["yellow"]))
+        s.add_snake(Snake(TestSnakes.MitchellNursey.MitchellNursey.move, "CornbreadMan", color=COLORS["yellow"]))
+        s.add_snake(Snake(TestSnakes.SimpleJake.SimpleJake.move, "SimpleJake", color=COLORS["blue"]))
+        homies = []
+        for h in s.snakes:
+            homies.append(h.id)
         try:
-            gameWinners.append(s.start_game(speed=100, outputBoard=False, debug=False))
+            winner = s.start_game(speed=100, outputBoard=False, debug=False)
+            print(s.turn)
+            gameWinners.append(winner)
+            for h in homies:
+                print(h, sum([1 for s in gameWinners if s == h]))
         except Exception as e:
             print("FAILURE: ", e)
 
-    homies = ["Jake2018", "SimpleJake", "MitchellNursey", "SajanDinsa"]
-    for h in homies:
-        print(h, sum([1 for s in gameWinners if s == h]))
+
 """
 
 if __name__ == "__main__":
-    s = BattleSnake(food=20)
-    s.add_snake(Snake(TestSnakes.BattleJake2018.Jake2018.move, "Jake2018", color=COLORS["cyan"]))
-    s.add_snake(Snake(TestSnakes.MitchellNursey.MitchellNursey.move, "MitchellNursey", color=COLORS["yellow"]))
-    s.add_snake(Snake(TestSnakes.SajanDinsa.SajanDinsa, "SajanDinsa", color=COLORS["red"]))
-    s.add_snake(Snake(TestSnakes.SimpleJake.SimpleJake.move, "Jake2018", color=COLORS["blue"]))
-    s.start_game(speed=25, outputBoard=True, debug=False)
+    s = BattleSnake(food=10)
+    s.add_snake(Snake(TestSnakes.BattleJake2018.Jake2018.move, "Jake2018", color=COLORS["blue"]))
+    s.add_snake(Snake(TestSnakes.MitchellNursey.MitchellNursey.move, "MitchellNursey", color=COLORS["blue"]))
+    s.add_snake(Snake(TestSnakes.MitchellNursey.MitchellNursey.move, "CornbreadMan", color=COLORS["blue"]))
+    s.add_snake(Snake(TestSnakes.SimpleJake.SimpleJake.move, "SimpleJake", color=COLORS["blue"]))
+    winner = s.start_game(speed=90, outputBoard=True, debug=False)
+    print("Winner: ", winner)
