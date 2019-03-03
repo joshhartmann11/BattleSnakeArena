@@ -1,10 +1,9 @@
 import random
 import time
 import traceback
+import copy
 from threading import Thread
-import TestSnakes.BattleJake2018.Jake2018
-import TestSnakes.SimpleJake.SimpleJake
-import TestSnakes.MitchellNursey.MitchellNursey
+import TestSnakes.battleJake2019.main
 
 '''
 
@@ -73,8 +72,9 @@ class BattleSnake():
     def move_snake(self, snake, json):
         input = self.specific_board_json(snake, json)
         try:
-            output = snake.getMove(input)
-        except Exception as e:
+            cpy = copy.deepcopy(input)
+            output = snake.getMove(cpy)
+        except AssertionError as e:
             traceback.print_tb(e.__traceback__)
             output = {"move": "up"}
         snake.move(output["move"])
@@ -236,11 +236,12 @@ class BattleSnake():
     # Jsonize the parts of the board that are not specific to the snake
     def generic_board_json(self):
         jsonobj = {}
-        jsonobj["width"] = self.dims["width"]
-        jsonobj["height"] = self.dims["height"]
         jsonobj["turn"] = self.turn
-        jsonobj["snakes"] = {"data": [s.jsonize() for s in self.snakes]}
-        jsonobj["food"] = {"data": self.jsonize_food()}
+        jsonobj["board"] = {}
+        jsonobj["board"]["height"] = self.dims["height"]
+        jsonobj["board"]["width"] = self.dims["width"]
+        jsonobj["board"]["snakes"] = [s.jsonize() for s in self.snakes]
+        jsonobj["board"]["food"] = self.jsonize_food()
         return jsonobj
 
 
@@ -291,9 +292,9 @@ class Snake():
     def jsonize(self):
         jsonobj = {}
         jsonobj["health"] = self.health
-        jsonobj["body"] = {"data": [{"x": b[0], "y": b[1]} for b in self.body]}
-        jsonobj["length"] = len(self.body)
+        jsonobj["body"] = [{"x": b[0], "y": b[1]} for b in self.body]
         jsonobj["id"] = self.id
+        jsonobj["name"] = self.id
         return jsonobj
 
 
@@ -345,10 +346,8 @@ if __name__ == "__main__":
 """
 
 if __name__ == "__main__":
-    s = BattleSnake(food=10)
-    s.add_snake(Snake(TestSnakes.BattleJake2018.Jake2018.move, "Jake2018", color=COLORS["blue"]))
-    s.add_snake(Snake(TestSnakes.MitchellNursey.MitchellNursey.move, "MitchellNursey", color=COLORS["blue"]))
-    s.add_snake(Snake(TestSnakes.MitchellNursey.MitchellNursey.move, "CornbreadMan", color=COLORS["blue"]))
-    s.add_snake(Snake(TestSnakes.SimpleJake.SimpleJake.move, "SimpleJake", color=COLORS["blue"]))
-    winner = s.start_game(speed=90, outputBoard=True, debug=False)
+    s = BattleSnake(food=1)
+    s.add_snake(Snake(TestSnakes.battleJake2019.main.move, "Jake2019", color=COLORS["blue"]))
+    s.add_snake(Snake(TestSnakes.battleJake2019.main.move, "Jake2019-2", color=COLORS["blue"]))
+    winner = s.start_game(speed=95, outputBoard=True, debug=True)
     print("Winner: ", winner)
