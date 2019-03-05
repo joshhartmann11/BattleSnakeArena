@@ -1,3 +1,8 @@
+"""
+battleJake2019
+
+battleJake2019 is Josh Hartmann's entry into the Battle Snake 2019 competition.
+"""
 import os
 import random
 import time
@@ -183,7 +188,7 @@ def move(data=None):
                 debug_print("Eat Tail:      ", moves)
                 moves = dont_get_eaten(moves, you, snakes, sameSize=False)
                 if moves != []:
-                    move = move[0]
+                    move = moves[0]
 
                 if move == None:
                     moves = ['left', 'right', 'up', 'down']

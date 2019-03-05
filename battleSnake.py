@@ -2,15 +2,16 @@ import random
 import time
 import traceback
 import copy
+import uuid
+import argparse
+import snakes
 from threading import Thread
-import TestSnakes.battleJake2019.main
 
-'''
-
+"""
 TODO:
-Fix head-on-head detection
-
-'''
+    - Update to reflect 2019 food spawning mechanics
+    - Add support to run multiple games at once
+"""
 
 COLORS = {  "black": "\033[1;37;40m",
             "red": "\033[1;37;41m",
@@ -21,13 +22,15 @@ COLORS = {  "black": "\033[1;37;40m",
             "cyan": "\033[1;37;46m",
             "grey": "\033[1;37;47m"}
 
-FOOD_COLOR = COLORS["green"]
-BORDER_COLOR = COLORS["grey"]
-DEFAULT_COLOR = "\033[0m"
+FOOD_COLOR = snakes.COLORS["green"]
+BORDER_COLOR = snakes.COLORS["grey"]
+DEFAULT_COLOR = snakes.COLORS["default"]
+
+VERBOSE = False
 
 class BattleSnake():
 
-    def __init__(self, dims=[20,20], food=5):
+    def __init__(self, dims=(11,11), food=5):
         self.dims = {"width": dims[0], "height": dims[1]}
         self.snakes = []
         self.turn = 0
@@ -128,7 +131,7 @@ class BattleSnake():
             self.move_snakes(debug=debug)
 
             if outputBoard:
-                s.print_board()
+                self.print_board()
                 print("\n" + BORDER_COLOR + " " * 2 * self.dims["width"] + "    " + DEFAULT_COLOR + "\n", end="")
                 print(DEFAULT_COLOR) # Restore default coloring to terminal
 
@@ -139,7 +142,7 @@ class BattleSnake():
                 pass
 
         if not len(self.snakes) == 0:
-            return(self.snakes[0].id)
+            return(self.snakes[0].name)
 
 
     # Resolve Head-on-head Collisions
@@ -279,12 +282,13 @@ class BattleSnake():
 
 class Snake():
 
-    def __init__(self, moveFunction, id, color):
+    def __init__(self, moveFunction, name=None, id=None, color=None):
         self.body = []
         self.health = 100
         self.ateFood = False
-        self.color = color
-        self.id = id
+        self.color = color if color else COLORS["red"]
+        self.id = id if id else uuid.uuid4()
+        self.name = name if name else self.id
         self.getMove = moveFunction
 
 
@@ -294,7 +298,7 @@ class Snake():
         jsonobj["health"] = self.health
         jsonobj["body"] = [{"x": b[0], "y": b[1]} for b in self.body]
         jsonobj["id"] = self.id
-        jsonobj["name"] = self.id
+        jsonobj["name"] = self.name
         return jsonobj
 
 
@@ -320,34 +324,62 @@ class Snake():
             self.health = self.health -1
         self.ateFood = False
 
-"""
+    def reset(self):
+        self.body = []
+        self.health = 100
+        self.ateFood = False
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--food", help="Amount of food on the board", type=int, default=1)
+    parser.add_argument("-s", "--snakes", nargs='+', help="Snakes to battle", type=str, default=["simpleJake2019", "battleJake2019"])
+    parser.add_argument("-d", "--dims", nargs='+', help="Dimensions of the board in x,y", type=int, default=[11,11])
+    parser.add_argument("-p", "--silent", help="Print information about the game", action="store_true", default=False)
+    parser.add_argument("-g", "--games", help="Number of games to play", type=int, default=1)
+    parser.add_argument("-b", "--suppress-board", help="Don't print the board", action="store_false", default=True)
+    parser.add_argument("-sp", "--speed", help="Speed of the game", type=int, default=95)
+    args = parser.parse_args()
+    return args
+
+
+def verbose_print(*args, **kwargs):
+    if VERBOSE:
+        print(*args, **kwargs)
+
+
 if __name__ == "__main__":
+    args = parse_args()
+    VERBOSE = not args.silent
+    if len(args.dims) == 1:
+        dims = (args.dims[0], args.dims[0])
+    elif len(args.dims) == 2:
+        dims = tuple(args.dims)
+
+    battleSnakes = []
+    for input_snake in args.snakes:
+        snek = [k for k in snakes.MAIN_SNAKES if input_snake == k['name']]
+        if len(snek) == 1:
+            s = snek[0]
+            battleSnakes.append(Snake(s["move"], name=s["name"], id=str(uuid.uuid4()), color=s["color"]))
+        else:
+            verbose_print("Malformed snakes.py file or snakes input argument.")
+
     gameWinners = []
-    for i in range(1000):
-        print("*"+ str(i) + "*")
-        s = BattleSnake(food=10)
-        s.add_snake(Snake(TestSnakes.BattleJake2018.Jake2018.move, "Jake2018", color=COLORS["cyan"]))
-        s.add_snake(Snake(TestSnakes.MitchellNursey.MitchellNursey.move, "MitchellNursey", color=COLORS["yellow"]))
-        s.add_snake(Snake(TestSnakes.MitchellNursey.MitchellNursey.move, "CornbreadMan", color=COLORS["yellow"]))
-        s.add_snake(Snake(TestSnakes.SimpleJake.SimpleJake.move, "SimpleJake", color=COLORS["blue"]))
-        homies = []
-        for h in s.snakes:
-            homies.append(h.id)
-        try:
-            winner = s.start_game(speed=100, outputBoard=False, debug=False)
-            print(s.turn)
-            gameWinners.append(winner)
-            for h in homies:
-                print(h, sum([1 for s in gameWinners if s == h]))
-        except Exception as e:
-            print("FAILURE: ", e)
+    for i in range(args.games):
+        game = BattleSnake(food=args.food, dims=dims)
+        [game.add_snake(s) for s in battleSnakes]
+        winner = game.start_game(speed=args.speed, outputBoard=args.suppress_board, debug=True)
+        gameWinners.append(winner)
+        if args.games > 1:
+            verbose_print("Game {}: ".format(i), winner)
+            [s.reset() for s in battleSnakes]
+        else:
+            verbose_print("Winner: ", winner)
 
-
-"""
-
-if __name__ == "__main__":
-    s = BattleSnake(food=1)
-    s.add_snake(Snake(TestSnakes.battleJake2019.main.move, "Jake2019", color=COLORS["blue"]))
-    s.add_snake(Snake(TestSnakes.battleJake2019.main.move, "Jake2019-2", color=COLORS["blue"]))
-    winner = s.start_game(speed=95, outputBoard=True, debug=True)
-    print("Winner: ", winner)
+    if args.games > 1:
+        print("-"*20)
+        print("Game Winners")
+        print("-"*20)
+        for winner in set(gameWinners):
+            print(winner, sum([1 for s in gameWinners if s == winner]))
+        print("-"*20)
