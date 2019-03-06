@@ -10,7 +10,6 @@ from threading import Thread
 """
 TODO:
     - Update to reflect 2019 food spawning mechanics
-    - Add support to run multiple games at once
 """
 
 COLORS = {  "black": "\033[1;37;40m",
@@ -30,12 +29,14 @@ VERBOSE = False
 
 class BattleSnake():
 
-    def __init__(self, dims=(11,11), food=5):
+    def __init__(self, dims=(11,11), foodStart=5, foodRate=0.01):
         self.dims = {"width": dims[0], "height": dims[1]}
         self.snakes = []
         self.turn = 0
         self.food = []
-        self.food = self.init_food(food)
+        self.food = self.init_food(foodStart)
+        self.foodProb = 0
+        self.foodRate = foodRate
 
 
     # Initialize the positions of food
@@ -48,7 +49,11 @@ class BattleSnake():
 
     # Add a food
     def add_food(self):
-        self.food.append(self.empty_spot())
+        if random.random() < self.foodProb:
+            self.food.append(self.empty_spot())
+            self.foodProb = self.foodRate
+        else:
+            self.foodProb += self.foodRate
 
 
     # Find a random empty spot
@@ -128,6 +133,7 @@ class BattleSnake():
 
         while(True):
             t1 = time.time()
+            self.add_food()
             self.move_snakes(debug=debug)
 
             if outputBoard:
@@ -219,7 +225,6 @@ class BattleSnake():
                     s.ateFood = True
                     if f in self.food:
                         self.food.remove(f)
-                        self.add_food()
 
 
     # Jsonize food
@@ -331,7 +336,7 @@ class Snake():
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--food", help="Amount of food on the board", type=int, default=1)
+    parser.add_argument("-f", "--food", help="Rate of food spawning", type=float, default=0.005)
     parser.add_argument("-s", "--snakes", nargs='+', help="Snakes to battle", type=str, default=["simpleJake2019", "battleJake2019"])
     parser.add_argument("-d", "--dims", nargs='+', help="Dimensions of the board in x,y", type=int, default=[11,11])
     parser.add_argument("-p", "--silent", help="Print information about the game", action="store_true", default=False)
@@ -366,7 +371,7 @@ if __name__ == "__main__":
 
     gameWinners = []
     for i in range(args.games):
-        game = BattleSnake(food=args.food, dims=dims)
+        game = BattleSnake(foodStart=len(args.snakes), foodRate=args.food, dims=dims)
         [game.add_snake(s) for s in battleSnakes]
         winner = game.start_game(speed=args.speed, outputBoard=args.suppress_board, debug=True)
         gameWinners.append(winner)
