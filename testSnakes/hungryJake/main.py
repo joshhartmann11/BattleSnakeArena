@@ -91,7 +91,7 @@ def move(data=None):
 
         # Search for food if your health is low
         if you['size'] < FOOD_THRESHOLD:
-            for i in range(1, FOOD_SEARCH_DIST):
+            for i in range(1, min([FOOD_SEARCH_DIST, max(walls)])):
                 movesTmp = get_food(moves, you['head'], food, i)
                 if movesTmp != []:
                     moves = movesTmp

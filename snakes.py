@@ -17,13 +17,13 @@ COLORS = {
 
 """
 {
- "move": {The function that responds to the /move request},
- "name": {The snakes name, must be unique},
- "color": {A color from the list of colors}
+ "move": The function that responds to the /move request,
+ "name": The snakes name, must be unique,
+ "color": A color from the list of colors
  }
 """
 
-MAIN_SNAKES = [
+SNAKES = [
     {
         "move": testSnakes.battleJake2019.main.move,
         "name": "battleJake2019",

@@ -7,20 +7,6 @@ import argparse
 import snakes
 from threading import Thread
 
-"""
-TODO:
-    - Update to reflect 2019 food spawning mechanics
-"""
-
-COLORS = {  "black": "\033[1;37;40m",
-            "red": "\033[1;37;41m",
-            "green": "\033[1;37;42m",
-            "yellow": "\033[1;37;43m",
-            "blue": "\033[1;37;44m",
-            "purple": "\033[1;37;45m",
-            "cyan": "\033[1;37;46m",
-            "grey": "\033[1;37;47m"}
-
 FOOD_COLOR = snakes.COLORS["green"]
 BORDER_COLOR = snakes.COLORS["grey"]
 DEFAULT_COLOR = snakes.COLORS["default"]
@@ -362,7 +348,7 @@ if __name__ == "__main__":
 
     battleSnakes = []
     for input_snake in args.snakes:
-        snek = [k for k in snakes.MAIN_SNAKES if input_snake == k['name']]
+        snek = [k for k in snakes.SNAKES if input_snake == k['name']]
         if len(snek) == 1:
             s = snek[0]
             battleSnakes.append(Snake(s["move"], name=s["name"], id=str(uuid.uuid4()), color=s["color"]))

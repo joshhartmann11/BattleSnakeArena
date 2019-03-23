@@ -19,12 +19,12 @@ This was my snake entered into Battle Snake 2018.
 A snake that only knows how to not hit walls and other snakes but has a good smell for food.
 
 ### hungryJake
-A snake who's top priority is to get that brunch.
+A snake whos top priority is to "get that brunch".
 
 ## Adding Your Own Snake
-Adding your own snake is simple! Your snake needs to be written in python3.
+Adding your own snake is simple! Your snake just needs to be written in python3.
 
-1. Make a quick modification to your snake. (Don't worry, it can still function as a server)
+1. Make a quick modification to your snake in the "move" function. (Don't worry, it can still function as a server)
 ```python3
 def move(data=None):
     if not data:
@@ -33,7 +33,7 @@ def move(data=None):
 
 2. Add your snake to the snakes file (snakes.py)
 
-Import your file and make a dictionary in the MAIN_SNAKES list to tell the arena about your snake.
+Import your file and make a dictionary in the SNAKES list to tell the arena about your snake.
 
 ## Running A Game
 There is a command line interface for running games through battleSnake.py. For help run:
