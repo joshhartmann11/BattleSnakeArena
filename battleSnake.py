@@ -16,7 +16,8 @@ VERBOSE = False
 class BattleSnake():
 
     def __init__(self, dims=(11,11), foodStart=5, foodRate=0.01):
-        self.dims = {"width": dims[0], "height": dims[1]}
+        self.width = dims[0]
+        self.height = dims[1]
         self.snakes = []
         self.turn = 0
         self.food = []
@@ -48,11 +49,11 @@ class BattleSnake():
         for s in self.snakes:
             taken.extend(s.body)
 
-        spot = (random.choice(range(self.dims["width"])),
-                random.choice(range(self.dims["height"])))
+        spot = (random.choice(range(self.width)),
+                random.choice(range(self.height)))
         while spot in taken:
-            spot = (random.choice(range(self.dims["width"])),
-                    random.choice(range(self.dims["height"])))
+            spot = (random.choice(range(self.width)),
+                    random.choice(range(self.height)))
         return spot
 
 
@@ -124,7 +125,7 @@ class BattleSnake():
 
             if outputBoard:
                 self.print_board()
-                print("\n" + BORDER_COLOR + " " * 2 * self.dims["width"] + "    " + DEFAULT_COLOR + "\n", end="")
+                print("\n" + BORDER_COLOR + " " * 2 * self.width + "    " + DEFAULT_COLOR + "\n", end="")
                 print(DEFAULT_COLOR) # Restore default coloring to terminal
 
             if self.check_winner(solo):
@@ -178,8 +179,8 @@ class BattleSnake():
         for s in self.snakes:
             head = s.body[0]
             if( head[0] < 0 or head[1] < 0 or
-                head[0] >= self.dims["width"] or
-                head[1] >= self.dims["height"]):
+                head[0] >= self.width or
+                head[1] >= self.height):
                 delSnakes.append(s)
 
         self.delete_snakes(delSnakes, reason="WALL COLLISION")
@@ -232,8 +233,8 @@ class BattleSnake():
         jsonobj = {}
         jsonobj["turn"] = self.turn
         jsonobj["board"] = {}
-        jsonobj["board"]["height"] = self.dims["height"]
-        jsonobj["board"]["width"] = self.dims["width"]
+        jsonobj["board"]["height"] = self.height
+        jsonobj["board"]["width"] = self.width
         jsonobj["board"]["snakes"] = [s.jsonize() for s in self.snakes]
         jsonobj["board"]["food"] = self.jsonize_food()
         return jsonobj
@@ -247,10 +248,10 @@ class BattleSnake():
 
         food = self.food
 
-        print(BORDER_COLOR + " " * 2 * self.dims["width"] + "    " + DEFAULT_COLOR, end="")
-        for j in range(self.dims["height"]):
+        print(BORDER_COLOR + " " * 2 * self.width + "    " + DEFAULT_COLOR, end="")
+        for j in range(self.height):
 	        print("\n" + BORDER_COLOR + "  " + DEFAULT_COLOR, end="")
-	        for i in range(self.dims["width"]):
+	        for i in range(self.width):
 
 	            if ((i, j)) in food:
 	                print(FOOD_COLOR + "  " + DEFAULT_COLOR, end="")
