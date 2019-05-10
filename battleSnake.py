@@ -15,7 +15,7 @@ VERBOSE = False
 
 class BattleSnake():
 
-    def __init__(self, dims=(11,11), foodStart=5, foodRate=0.01):
+    def __init__(self, dims=(11,11), foodStart=5, foodRate=0.008):
         self.width = dims[0]
         self.height = dims[1]
         self.snakes = []
@@ -125,8 +125,7 @@ class BattleSnake():
 
             if outputBoard:
                 self.print_board()
-                print("\n" + BORDER_COLOR + " " * 2 * self.width + "    " + DEFAULT_COLOR + "\n", end="")
-                print(DEFAULT_COLOR) # Restore default coloring to terminal
+                # Restore default coloring to terminal
 
             if self.check_winner(solo):
                 break
@@ -246,30 +245,26 @@ class BattleSnake():
         for s in self.snakes:
             snakes.append(s.body)
 
-        food = self.food
-
-        print(BORDER_COLOR + " " * 2 * self.width + "    " + DEFAULT_COLOR, end="")
+        ywall = " " * 2 * self.width + "  "
+        print(f"{BORDER_COLOR}{ywall}{DEFAULT_COLOR}") # Y Border
         for j in range(self.height):
-	        print("\n" + BORDER_COLOR + "  " + DEFAULT_COLOR, end="")
-	        for i in range(self.width):
-
-	            if ((i, j)) in food:
-	                print(FOOD_COLOR + "  " + DEFAULT_COLOR, end="")
-	            else:
-	                done = False
-	                for ind, s in enumerate(snakes):
-	                    if ((i, j)) in s:
-	                        if s[0] == ((i, j)):
-	                            print(self.snakes[ind].color + "OO" + DEFAULT_COLOR, end="")
-	                        else:
-	                            print(self.snakes[ind].color + "  " + DEFAULT_COLOR, end="")
-	                        done = True
-
-	                if not done:
-	                    print(DEFAULT_COLOR + "  " + DEFAULT_COLOR, end="")
-
-	        print(BORDER_COLOR + "  " + DEFAULT_COLOR, end="")
-
+            print(f"{BORDER_COLOR} {DEFAULT_COLOR}", end="") # X Border
+            for i in range(self.width):
+                if (i, j) in self.food:
+                    print(f"{FOOD_COLOR}  {DEFAULT_COLOR}", end="") # Food
+                else:
+                    no_snake = True
+                    for ind, s in enumerate(snakes):
+                        if (i, j) in s:
+                            if s[0] == (i, j):
+                                print(f"{self.snakes[ind].color}OO{DEFAULT_COLOR}", end="") # Head
+                            else:
+                                print(f"{self.snakes[ind].color}  {DEFAULT_COLOR}", end="") # Body
+                            no_snake = False
+                    if no_snake:
+                        print(f"{DEFAULT_COLOR}  {DEFAULT_COLOR}", end="") # Empty
+            print(f"{BORDER_COLOR} {DEFAULT_COLOR}") # X Border
+        print(f"{BORDER_COLOR}{ywall}{DEFAULT_COLOR}") # Y Border
 
 
 class Snake():
