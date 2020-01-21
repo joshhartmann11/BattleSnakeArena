@@ -5,7 +5,9 @@ import copy
 import uuid
 import argparse
 import snakes
+import tqdm
 from threading import Thread
+from multiprocessing import Pool
 
 FOOD_COLOR = snakes.COLORS["green"]
 BORDER_COLOR = snakes.COLORS["grey"]
@@ -15,19 +17,22 @@ VERBOSE = False
 
 class BattleSnake():
 
-    def __init__(self, dims=(11,11), foodStart=5, foodRate=0.008):
+    def __init__(self, dims=(11,11), food_start=5, food_rate=0.008, seed=None):
+        self.seed = seed if seed else int(time.time()*10000)
+        random.seed(self.seed)
         self.width = dims[0]
         self.height = dims[1]
         self.snakes = []
         self.turn = 0
         self.food = []
-        self.food = self.init_food(foodStart)
-        self.foodProb = 0
-        self.foodRate = foodRate
+        self.food = self._init_food(food_start)
+        self.food_prob = 0
+        self.food_rate = food_rate
+
 
 
     # Initialize the positions of food
-    def init_food(self, food):
+    def _init_food(self, food):
         places = []
         for i in range(food):
             places.append(self.empty_spot())
@@ -36,11 +41,11 @@ class BattleSnake():
 
     # Add a food
     def add_food(self):
-        if random.random() < self.foodProb:
+        if random.random() < self.food_prob:
             self.food.append(self.empty_spot())
-            self.foodProb = self.foodRate
+            self.food_prob = self.food_rate
         else:
-            self.foodProb += self.foodRate
+            self.food_prob += self.food_rate
 
 
     # Find a random empty spot
@@ -68,7 +73,7 @@ class BattleSnake():
         input = self.specific_board_json(snake, json)
         try:
             cpy = copy.deepcopy(input)
-            output = snake.getMove(cpy)
+            output = snake.get_move(cpy)
         except AssertionError as e:
             traceback.print_tb(e.__traceback__)
             output = {"move": "up"}
@@ -90,16 +95,19 @@ class BattleSnake():
         self.check_food()
         self.detect_death()
 
-        self.turn += 1
-
 
     # Delete snakes
     def delete_snakes(self, snakes, reason=None):
-
         if not snakes == []:
             for s in snakes:
                 if s in self.snakes:
-                    self.snakes.remove(s)
+                    s.end()
+                    if s.name == "jake":
+                        for s in self.snakes[0:-1]:
+                            self.snakes.remove(s)
+                        return
+                    else:
+                        self.snakes.remove(s)
 
 
     # Checks to see if there's a winner
@@ -112,7 +120,8 @@ class BattleSnake():
 
 
     # Start the game
-    def start_game(self, speed=50, outputBoard=True, debug=False):
+    def start_game(self, speed=50, output_board=True, debug=False):
+
         if(len(self.snakes) == 1):
             solo = True
         else:
@@ -123,7 +132,9 @@ class BattleSnake():
             self.add_food()
             self.move_snakes(debug=debug)
 
-            if outputBoard:
+            self.turn += 1
+
+            if output_board:
                 self.print_board()
                 # Restore default coloring to terminal
 
@@ -134,65 +145,65 @@ class BattleSnake():
                 pass
 
         if not len(self.snakes) == 0:
+            self.snakes[0].end(winner=True)
             return(self.snakes[0].name)
 
 
     # Resolve Head-on-head Collisions
     def resolve_head_collisions(self):
-
-        delSnakes = []
+        del_snakes = []
         for s1 in self.snakes:
             for s2 in self.snakes:
                 if s1 != s2:
                     if s2.body[0] == s1.body[0]:
                         if len(s1.body) > len(s2.body):
-                            delSnakes.append(s2)
+                            del_snakes.append(s2)
 
                         elif len(s1.body) < len(s2.body):
-                            delSnakes.append(s1)
+                            del_snakes.append(s1)
                         else:
-                            delSnakes.append(s1)
-                            delSnakes.append(s2)
+                            del_snakes.append(s1)
+                            del_snakes.append(s2)
 
-        self.delete_snakes(delSnakes, reason="HEAD-ON-HEAD")
+        self.delete_snakes(del_snakes, reason="HEAD-ON-HEAD")
 
 
     # Detect Snake Collision
     def detect_snake_collision(self):
-        allSnakes = []
+        all_snakes = []
         for s in self.snakes:
-            allSnakes.extend(s.body[1:])
+            all_snakes.extend(s.body[1:])
 
-        delSnakes = []
+        del_snakes = []
         for s in self.snakes:
             head = s.body[0]
-            if head in allSnakes:
-                delSnakes.append(s)
+            if head in all_snakes:
+                del_snakes.append(s)
 
-        self.delete_snakes(delSnakes, reason="SNAKE COLLISION")
+        self.delete_snakes(del_snakes, reason="SNAKE COLLISION")
 
 
     # Detect Wall Collision
     def detect_wall_collision(self):
-        delSnakes = []
+        del_snakes = []
         for s in self.snakes:
             head = s.body[0]
             if( head[0] < 0 or head[1] < 0 or
                 head[0] >= self.width or
                 head[1] >= self.height):
-                delSnakes.append(s)
+                del_snakes.append(s)
 
-        self.delete_snakes(delSnakes, reason="WALL COLLISION")
+        self.delete_snakes(del_snakes, reason="WALL COLLISION")
 
 
     # Detect Starvation
     def detect_starvation(self):
-        delSnakes = []
+        del_snakes = []
         for s in self.snakes:
             if(s.health <= 0):
-                delSnakes.append(s)
+                del_snakes.append(s)
 
-        self.delete_snakes(delSnakes, reason="STARVATION")
+        self.delete_snakes(del_snakes, reason="STARVATION")
 
 
     # Death detection
@@ -208,7 +219,7 @@ class BattleSnake():
         for f in self.food:
             for s in self.snakes:
                 if f in s.body:
-                    s.ateFood = True
+                    s.ate_food = True
                     if f in self.food:
                         self.food.remove(f)
 
@@ -269,14 +280,15 @@ class BattleSnake():
 
 class Snake():
 
-    def __init__(self, moveFunction, name=None, id=None, color=None):
+    def __init__(self, move=None, name=None, id=None, color=None, **kwargs):
         self.body = []
         self.health = 100
-        self.ateFood = False
+        self.ate_food = False
         self.color = color if color else COLORS["red"]
         self.id = id if id else uuid.uuid4()
         self.name = name if name else self.id
-        self.getMove = moveFunction
+        self.get_move = move
+        self.kwargs = kwargs
 
 
     # Puts the snakes information into the required json format
@@ -289,9 +301,14 @@ class Snake():
         return jsonobj
 
 
+    # Relays death to the snake
+    def end(self, winner=False):
+        if "end" in self.kwargs.keys():
+            self.kwargs["end"](winner)
+
+
     # Moves the snake
     def move(self, move):
-
         head = self.body[0]
 
         if(move == "left"):
@@ -303,18 +320,50 @@ class Snake():
         else:
             self.body = [(head[0], head[1]-1)] + self.body
 
-        if self.ateFood:
+        if self.ate_food:
             self.health = 100
         else:
             if len(self.body) > 3:
                 self.body = self.body[:-1]
             self.health = self.health -1
-        self.ateFood = False
+        self.ate_food = False
 
     def reset(self):
         self.body = []
         self.health = 100
-        self.ateFood = False
+        self.ate_food = False
+
+
+def verbose_print(*args, **kwargs):
+    if VERBOSE:
+        print(*args, **kwargs)
+
+
+def run_game(snakes, food=0.005, dims=(11,11), suppress_board=False, speed=80, quiet=False, seed=None):
+    game = BattleSnake(food_start=len(snakes), food_rate=food, dims=dims, seed=seed)
+    for s in snakes: game.add_snake(s)
+
+    game_results = {}
+    game_results["winner"] = game.start_game(speed=speed, output_board=suppress_board, debug=True)
+    game_results["turns"] = game.turn
+    game_results["seed"] = game.seed
+
+    if not quiet:
+        print("Winner: {}, Turns: {}, Seed: {}".format(game_results["winner"], game_results["turns"], game_results["seed"] ))
+
+    return game_results
+
+
+def _run_game_from_args(args):
+    return run_game(
+        snakes=args.snakes,
+        food=args.food,
+        dims=args.dims,
+        suppress_board=args.suppress_board,
+        speed=args.speed,
+        quiet=args.silent,
+        seed=args.seed)
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -324,49 +373,40 @@ def parse_args():
     parser.add_argument("-p", "--silent", help="Print information about the game", action="store_true", default=False)
     parser.add_argument("-g", "--games", help="Number of games to play", type=int, default=1)
     parser.add_argument("-b", "--suppress-board", help="Don't print the board", action="store_false", default=True)
-    parser.add_argument("-sp", "--speed", help="Speed of the game", type=int, default=95)
+    parser.add_argument("-t", "--threads", help="Number of threads to run multiple games on", type=int, default=4)
+    parser.add_argument("-i", "--seed", help="Game seed", type=int, default=None)
+    parser.add_argument("-sp", "--speed", help="Speed of the game", type=int, default=90)
     args = parser.parse_args()
-    return args
 
-
-def verbose_print(*args, **kwargs):
-    if VERBOSE:
-        print(*args, **kwargs)
-
-
-if __name__ == "__main__":
-    args = parse_args()
-    VERBOSE = not args.silent
     if len(args.dims) == 1:
         dims = (args.dims[0], args.dims[0])
     elif len(args.dims) == 2:
         dims = tuple(args.dims)
 
-    battleSnakes = []
+    battle_snakes = []
     for input_snake in args.snakes:
         snek = [k for k in snakes.SNAKES if input_snake == k['name']]
         if len(snek) == 1:
             s = snek[0]
-            battleSnakes.append(Snake(s["move"], name=s["name"], id=str(uuid.uuid4()), color=s["color"]))
+            battle_snakes.append(Snake(**s))
         else:
             verbose_print("Malformed snakes.py file or snakes input argument.")
+    args.snakes = battle_snakes
 
-    gameWinners = []
-    for i in range(args.games):
-        game = BattleSnake(foodStart=len(args.snakes), foodRate=args.food, dims=dims)
-        [game.add_snake(s) for s in battleSnakes]
-        winner = game.start_game(speed=args.speed, outputBoard=args.suppress_board, debug=True)
-        gameWinners.append(winner)
-        if args.games > 1:
-            verbose_print("Game {}: ".format(i), winner)
-            [s.reset() for s in battleSnakes]
-        else:
-            verbose_print("Winner: ", winner)
+    return args
 
-    if args.games > 1:
-        print("-"*20)
-        print("Game Winners")
-        print("-"*20)
-        for winner in set(gameWinners):
-            print(winner, sum([1 for s in gameWinners if s == winner]))
-        print("-"*20)
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    if args.games == 1 or args.suppress_board:
+        _run_game_from_args(args)
+    else:
+        args.silent = True
+        with Pool(args.threads) as p:
+            outputs = list(tqdm.tqdm(p.imap_unordered(_run_game_from_args, [args for i in range(args.games)]), total=args.games))
+
+        winners = [d["winner"] for d in outputs]
+
+        for winner in set(winners):
+            print("{}, Games Won: {}".format(winner, sum([1 for s in winners if s == winner])))

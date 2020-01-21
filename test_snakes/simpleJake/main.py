@@ -51,6 +51,7 @@ def start():
 @bottle.post('/move')
 def move(data=None):
     global ate_food_last_turn
+    random.seed(1)
     if not data:
         data = bottle.request.json
     # Get all the data

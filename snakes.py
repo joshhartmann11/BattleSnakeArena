@@ -1,7 +1,7 @@
-import testSnakes.battleJake2019.main
-import testSnakes.battleJake2018.main
-import testSnakes.simpleJake.main
-import testSnakes.hungryJake.main
+import test_snakes.battleJake2019.main
+import test_snakes.battleJake2018.main
+import test_snakes.simpleJake.main
+import test_snakes.hungryJake.main
 
 COLORS = {
     "black": "\033[1;37;40m",
@@ -25,22 +25,22 @@ COLORS = {
 
 SNAKES = [
     {
-        "move": testSnakes.battleJake2019.main.move,
+        "move": test_snakes.battleJake2019.main.move,
         "name": "battleJake2019",
         "color": COLORS["purple"]
     },
     {
-        "move": testSnakes.battleJake2018.main.move,
+        "move": test_snakes.battleJake2018.main.move,
         "name": "battleJake2018",
         "color": COLORS["cyan"]
     },
     {
-        "move": testSnakes.simpleJake.main.move,
+        "move": test_snakes.simpleJake.main.move,
         "name": "simpleJake",
         "color": COLORS["black"]
     },
     {
-        "move": testSnakes.hungryJake.main.move,
+        "move": test_snakes.hungryJake.main.move,
         "name": "hungryJake",
         "color": COLORS["yellow"]
     }

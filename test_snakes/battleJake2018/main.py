@@ -33,6 +33,7 @@ def start():
 
 @bottle.post('/move')
 def move(data=None):
+    random.seed(1)
     if not data:
         data = bottle.request.json
 

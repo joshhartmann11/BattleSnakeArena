@@ -38,17 +38,17 @@ Import your file and make a dictionary in the SNAKES list to tell the arena abou
 ## Running A Game
 There is a command line interface for running games through battleSnake.py. For help run:
 ```
-python3 battleSnake.py -h
+python3 battlesnake.py -h
 ```
 
 ### Running A Single Game
 "Run a game with the snakes battleJake2018 and battleJake2019"
 ```
-python3 battleSnake.py -s battleJake2018 battleJake2019
+python3 battlesnake.py -s battleJake2018 battleJake2019
 ```
 
 ### Running Many Games Without Board Output
 "Run 10 games without board output at 100% speed with battleJake2018, battleJake2019, simpleJake, and hungryJake"
 ```
-python3 battleSnake.py -g 10 -b -sp 100 -s battleJake2018 battleJake2019 simpleJake hungryJake
+python3 battlesnake.py -g 10 -b -sp 100 -s battleJake2018 battleJake2019 simpleJake hungryJake
 ```
