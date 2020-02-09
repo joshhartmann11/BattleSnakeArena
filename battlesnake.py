@@ -73,7 +73,7 @@ class BattleSnake():
         try:
             cpy = copy.deepcopy(input)
             output = snake.get_move(cpy)
-        except AssertionError as e:
+        except Exception as e:
             traceback.print_tb(e.__traceback__)
             output = {"move": "up"}
         snake.move(output["move"])
