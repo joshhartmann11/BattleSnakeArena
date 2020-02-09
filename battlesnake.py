@@ -17,7 +17,7 @@ VERBOSE = False
 
 class BattleSnake():
 
-    def __init__(self, dims=(11,11), food_start=5, food_rate=0.008, seed=None):
+    def __init__(self, dims=(11,11), food_start=5, food_rate=0.02, seed=None):
         self.seed = seed if seed else int(time.time()*10000)
         random.seed(self.seed)
         self.width = dims[0]
@@ -28,7 +28,6 @@ class BattleSnake():
         self.food = self._init_food(food_start)
         self.food_prob = 0
         self.food_rate = food_rate
-
 
 
     # Initialize the positions of food
@@ -285,7 +284,7 @@ class Snake():
         self.health = 100
         self.ate_food = False
         self.color = color if color else COLORS["red"]
-        self.id = id if id else uuid.uuid4()
+        self.id = id if id else str(uuid.uuid4())
         self.name = name if name else self.id
         self.get_move = move
         self.kwargs = kwargs
@@ -367,7 +366,7 @@ def _run_game_from_args(args):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--food", help="Rate of food spawning", type=float, default=0.005)
+    parser.add_argument("-f", "--food", help="Rate of food spawning", type=float, default=0.02)
     parser.add_argument("-s", "--snakes", nargs='+', help="Snakes to battle", type=str, default=["simpleJake2019", "battleJake2019"])
     parser.add_argument("-d", "--dims", nargs='+', help="Dimensions of the board in x,y", type=int, default=[11,11])
     parser.add_argument("-p", "--silent", help="Print information about the game", action="store_true", default=False)
