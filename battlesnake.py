@@ -398,7 +398,8 @@ if __name__ == "__main__":
     args = parse_args()
 
     if args.games == 1 or args.suppress_board:
-        _run_game_from_args(args)
+        for i in range(args.games):
+            _run_game_from_args(args)
     else:
         args.silent = True
         with Pool(args.threads) as p:

@@ -1,8 +1,7 @@
 # BattleSnakeArena
-A modified, terminal based, [Battle Snake](https://play.battlesnake.io/) arena to bypass servers and have complete access to data.
+A modified, terminal based, [Battle Snake](https://play.battlesnake.io/) arena to bypass servers and have complete control.
 
 ## Requirements
-- A Bash shell
 - Python3
 - A few packages for Python3 that you probably already have
 
@@ -52,3 +51,8 @@ python3 battlesnake.py -s battleJake2018 battleJake2019
 ```
 python3 battlesnake.py -g 10 -b -sp 100 -s battleJake2018 battleJake2019 simpleJake hungryJake
 ```
+
+## Why?
+- Speed: Run 100s or 1000s of games, in parallel, to gather training data, assess your changes and test your snake
+- No Server: Take as long as you want to respond, save that $$$ on server costs
+- Debugging: See your console debugging realtime printed between game states
