@@ -128,14 +128,13 @@ class BattleSnake():
 
         while(True):
             t1 = time.time()
-            self.add_food()
             self.move_snakes(debug=debug)
+            self.add_food()
 
             self.turn += 1
 
             if output_board:
                 self.print_board()
-                # Restore default coloring to terminal
 
             if self.check_winner(solo):
                 break
