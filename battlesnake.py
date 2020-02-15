@@ -217,6 +217,7 @@ class BattleSnake():
         for f in self.food:
             for s in self.snakes:
                 if f in s.body:
+                    s.health = 100
                     s.ate_food = True
                     if f in self.food:
                         self.food.remove(f)
@@ -299,6 +300,11 @@ class Snake():
         return jsonobj
 
 
+    def start(self):
+        if "start" in self.kwargs.keys():
+            self.kwargs["start"]()
+
+
     # Relays death to the snake
     def end(self, winner=False):
         if "end" in self.kwargs.keys():
@@ -318,13 +324,12 @@ class Snake():
         else:
             self.body = [(head[0], head[1]-1)] + self.body
 
-        if self.ate_food:
-            self.health = 100
-        else:
-            if len(self.body) > 3:
-                self.body = self.body[:-1]
-            self.health = self.health -1
+
+        if len(self.body) > 3 and not self.ate_food:
+            self.body = self.body[:-1]
         self.ate_food = False
+        self.health = self.health -1
+
 
     def reset(self):
         self.body = []
@@ -363,7 +368,7 @@ def _run_game_from_args(args):
         seed=args.seed)
 
 
-def parse_args():
+def parse_args(sysargs=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--food", help="Rate of food spawning", type=float, default=0.02)
     parser.add_argument("-s", "--snakes", nargs='+', help="Snakes to battle", type=str, default=["simpleJake2019", "battleJake2019"])
@@ -374,7 +379,10 @@ def parse_args():
     parser.add_argument("-t", "--threads", help="Number of threads to run multiple games on", type=int, default=4)
     parser.add_argument("-i", "--seed", help="Game seed", type=int, default=None)
     parser.add_argument("-sp", "--speed", help="Speed of the game", type=int, default=90)
-    args = parser.parse_args()
+    if sysargs:
+        args = parser.parse_args(sysargs)
+    else:
+        args = parser.parse_args()
 
     if len(args.dims) == 1:
         dims = (args.dims[0], args.dims[0])

@@ -53,6 +53,6 @@ python3 battlesnake.py -g 10 -b -sp 100 -s battleJake2018 battleJake2019 simpleJ
 ```
 
 ## Why?
-- Speed: Run 100s or 1000s of games, in parallel, to gather training data, assess your changes and test your snake
+- Speed: Run 100s or 1000s of games, in parallel, to gather training data, assess your changes or test your snake
 - No Server: Take as long as you want to respond, save that $$$ on server costs
-- Debugging: See your console debugging realtime printed between game states
+- Debugging: See your console debugging realtime printed between game states, rerun games with the same seed
