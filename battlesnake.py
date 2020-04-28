@@ -4,10 +4,13 @@ import traceback
 import copy
 import uuid
 import argparse
-import snakes
 import tqdm
+import requests
+import traceback
 from threading import Thread
 from multiprocessing import Pool
+
+import snakes
 
 FOOD_COLOR = snakes.COLORS["green"]
 BORDER_COLOR = snakes.COLORS["grey"]
@@ -30,226 +33,34 @@ class BattleSnake():
         self.food_rate = food_rate
 
 
-    # Initialize the positions of food
-    def _init_food(self, food):
-        places = []
-        for i in range(food):
-            places.append(self.empty_spot())
-        return places
-
-
-    # Add a food
-    def add_food(self):
-        if random.random() < self.food_prob:
-            self.food.append(self.empty_spot())
-            self.food_prob = self.food_rate
-        else:
-            self.food_prob += self.food_rate
-
-
-    # Find a random empty spot
-    def empty_spot(self):
-        taken = list(self.food)
-        for s in self.snakes:
-            taken.extend(s.body)
-
-        spot = (random.choice(range(self.width)),
-                random.choice(range(self.height)))
-        while spot in taken:
-            spot = (random.choice(range(self.width)),
-                    random.choice(range(self.height)))
-        return spot
-
-
-    # Add the snakes
     def add_snake(self, snake):
-        snake.body.append(self.empty_spot())
+        snake.body.append(self._empty_spot())
         self.snakes.append(snake)
 
 
-    # Move a single snake
-    def move_snake(self, snake, json):
-        input = self.specific_board_json(snake, json)
-        try:
-            cpy = copy.deepcopy(input)
-            output = snake.get_move(cpy)
-        except Exception as e:
-            traceback.print_tb(e.__traceback__)
-            output = {"move": "up"}
-        snake.move(output["move"])
-
-
-    # Move snakes
-    def move_snakes(self, debug=False):
-        json = self.generic_board_json()
-        threads = []
-        for i, snake in enumerate(self.snakes):
-            process = Thread(target=self.move_snake, args=(snake, json))
-            process.start()
-            threads.append(process)
-
-        for process in threads:
-            process.join()
-
-        self.check_food()
-        self.detect_death()
-
-
-    # Delete snakes
-    def delete_snakes(self, snakes, reason=None):
-        if not snakes == []:
-            for s in snakes:
-                if s in self.snakes:
-                    s.end()
-                    if s.name == "jake":
-                        for s in self.snakes[0:-1]:
-                            self.snakes.remove(s)
-                        return
-                    else:
-                        self.snakes.remove(s)
-
-
-    # Checks to see if there's a winner
-    def check_winner(self, solo):
-        if(len(self.snakes) == 1 and not solo):
-            return True
-        if(len(self.snakes) == 0):
-            return True
-        return False
-
-
-    # Start the game
     def start_game(self, speed=50, output_board=True, debug=False):
+        solo = (len(self.snakes) == 1)
 
-        if(len(self.snakes) == 1):
-            solo = True
-        else:
-            solo = False
+        json = self._get_board_json()
+        for s in self.snakes: s.start(json)
 
         while(True):
             t1 = time.time()
-            self.move_snakes(debug=debug)
-            self.add_food()
+            self._move_snakes(debug=debug)
+            self._detect_death()
+            self._check_food()
+            self._add_food()
 
             self.turn += 1
 
-            if output_board:
-                self.print_board()
+            if output_board: self.print_board()
 
-            if self.check_winner(solo):
+            if self._check_winner(solo):
                 break
 
-            while(time.time()-t1 <= float(100-speed)/float(100)):
-                pass
-
-        if not len(self.snakes) == 0:
-            self.snakes[0].end(winner=True)
-            return(self.snakes[0].name)
+            while(time.time()-t1 <= float(100-speed)/float(100)): pass
 
 
-    # Resolve Head-on-head Collisions
-    def resolve_head_collisions(self):
-        del_snakes = []
-        for s1 in self.snakes:
-            for s2 in self.snakes:
-                if s1 != s2:
-                    if s2.body[0] == s1.body[0]:
-                        if len(s1.body) > len(s2.body):
-                            del_snakes.append(s2)
-
-                        elif len(s1.body) < len(s2.body):
-                            del_snakes.append(s1)
-                        else:
-                            del_snakes.append(s1)
-                            del_snakes.append(s2)
-
-        self.delete_snakes(del_snakes, reason="HEAD-ON-HEAD")
-
-
-    # Detect Snake Collision
-    def detect_snake_collision(self):
-        all_snakes = []
-        for s in self.snakes:
-            all_snakes.extend(s.body[1:])
-
-        del_snakes = []
-        for s in self.snakes:
-            head = s.body[0]
-            if head in all_snakes:
-                del_snakes.append(s)
-
-        self.delete_snakes(del_snakes, reason="SNAKE COLLISION")
-
-
-    # Detect Wall Collision
-    def detect_wall_collision(self):
-        del_snakes = []
-        for s in self.snakes:
-            head = s.body[0]
-            if( head[0] < 0 or head[1] < 0 or
-                head[0] >= self.width or
-                head[1] >= self.height):
-                del_snakes.append(s)
-
-        self.delete_snakes(del_snakes, reason="WALL COLLISION")
-
-
-    # Detect Starvation
-    def detect_starvation(self):
-        del_snakes = []
-        for s in self.snakes:
-            if(s.health <= 0):
-                del_snakes.append(s)
-
-        self.delete_snakes(del_snakes, reason="STARVATION")
-
-
-    # Death detection
-    def detect_death(self):
-        self.detect_starvation()
-        self.detect_wall_collision()
-        self.detect_snake_collision()
-        self.resolve_head_collisions()
-
-
-    # Detect Eaten Food
-    def check_food(self):
-        for f in self.food:
-            for s in self.snakes:
-                if f in s.body:
-                    s.health = 100
-                    s.ate_food = True
-                    if f in self.food:
-                        self.food.remove(f)
-
-
-    # Jsonize food
-    def jsonize_food(self):
-        food = []
-        for f in self.food:
-            food.append({"x":f[0], "y":f[1]})
-        return food
-
-
-    # Jsonize the board specific to the given snake
-    def specific_board_json(self, snake, jsonobj):
-        jsonobj["you"] = snake.jsonize()
-        return jsonobj
-
-
-    # Jsonize the parts of the board that are not specific to the snake
-    def generic_board_json(self):
-        jsonobj = {}
-        jsonobj["turn"] = self.turn
-        jsonobj["board"] = {}
-        jsonobj["board"]["height"] = self.height
-        jsonobj["board"]["width"] = self.width
-        jsonobj["board"]["snakes"] = [s.jsonize() for s in self.snakes]
-        jsonobj["board"]["food"] = self.jsonize_food()
-        return jsonobj
-
-
-    # Print the board
     def print_board(self):
         snakes = []
         for s in self.snakes:
@@ -277,20 +88,160 @@ class BattleSnake():
         print(f"{BORDER_COLOR}{ywall}{DEFAULT_COLOR}") # Y Border
 
 
+    def _init_food(self, food):
+        places = []
+        for i in range(food):
+            places.append(self._empty_spot())
+        return places
+
+
+    def _add_food(self):
+        if random.random() < self.food_prob:
+            self.food.append(self._empty_spot())
+            self.food_prob = self.food_rate
+        else:
+            self.food_prob += self.food_rate
+
+
+    def _empty_spot(self):
+        taken = list(self.food)
+        for s in self.snakes:
+            taken.extend(s.body)
+
+        spot = (random.choice(range(self.width)),
+                random.choice(range(self.height)))
+        while spot in taken:
+            spot = (random.choice(range(self.width)),
+                    random.choice(range(self.height)))
+        return spot
+
+
+    def _move_snakes(self, debug=False):
+        json = self._get_board_json()
+        threads = []
+        for snake in self.snakes:
+            process = Thread(target=snake.move, args=(json,))
+            process.start()
+            threads.append(process)
+
+        for process in threads:
+            process.join()
+
+
+    def _delete_snakes(self, snakes, reason=None):
+        if not snakes == []:
+            for s in snakes:
+                if s in self.snakes:
+                    s.end(self._get_board_json())
+                    self.snakes.remove(s)
+
+
+    def _resolve_head_collisions(self):
+        del_snakes = []
+        for s1 in self.snakes:
+            for s2 in self.snakes:
+                if s1 != s2:
+                    if s2.body[0] == s1.body[0]:
+                        if len(s1.body) > len(s2.body):
+                            del_snakes.append(s2)
+
+                        elif len(s1.body) < len(s2.body):
+                            del_snakes.append(s1)
+                        else:
+                            del_snakes.append(s1)
+                            del_snakes.append(s2)
+
+        self._delete_snakes(del_snakes, reason="HEAD-ON-HEAD")
+
+
+    def _detect_snake_collision(self):
+        all_snakes = []
+        for s in self.snakes:
+            all_snakes.extend(s.body[1:])
+
+        del_snakes = []
+        for s in self.snakes:
+            head = s.body[0]
+            if head in all_snakes:
+                del_snakes.append(s)
+
+        self._delete_snakes(del_snakes, reason="SNAKE COLLISION")
+
+
+    def _detect_wall_collision(self):
+        del_snakes = []
+        for s in self.snakes:
+            head = s.body[0]
+            if( head[0] < 0 or head[1] < 0 or
+                head[0] >= self.width or
+                head[1] >= self.height):
+                del_snakes.append(s)
+
+        self._delete_snakes(del_snakes, reason="WALL COLLISION")
+
+
+    def _detect_starvation(self):
+        del_snakes = []
+        for s in self.snakes:
+            if(s.health <= 0):
+                del_snakes.append(s)
+
+        self._delete_snakes(del_snakes, reason="STARVATION")
+
+
+    def _check_food(self):
+        for f in self.food:
+            for s in self.snakes:
+                if f in s.body:
+                    s.health = 100
+                    s.ate_food = True
+                    if f in self.food:
+                        self.food.remove(f)
+
+
+    def _get_board_json(self):
+        jsonobj = {}
+        jsonobj["turn"] = self.turn
+        jsonobj["board"] = {}
+        jsonobj["board"]["height"] = self.height
+        jsonobj["board"]["width"] = self.width
+        jsonobj["board"]["snakes"] = [s.jsonize() for s in self.snakes]
+        jsonobj["board"]["food"] = [{"x":f[0], "y":f[1]} for f in self.food]
+        return jsonobj
+
+
+    def _detect_death(self):
+        self._detect_starvation()
+        self._detect_wall_collision()
+        self._detect_snake_collision()
+        self._resolve_head_collisions()
+
+
+    def _check_winner(self, solo):
+        return (len(self.snakes) == 1 and not solo) or (len(self.snakes) == 0)
+
+
+
+
+
+
+
 class Snake():
 
-    def __init__(self, move=None, name=None, id=None, color=None, **kwargs):
+    def __init__(self, name=None, id=None, color=None, move=None, end=None, start=None, server=None, **kwargs):
         self.body = []
         self.health = 100
         self.ate_food = False
         self.color = color if color else COLORS["red"]
         self.id = id if id else str(uuid.uuid4())
         self.name = name if name else self.id
-        self.get_move = move
+        self._move = move
+        self._start = start
+        self._end = end
+        self.server = server
         self.kwargs = kwargs
 
 
-    # Puts the snakes information into the required json format
     def jsonize(self):
         jsonobj = {}
         jsonobj["health"] = self.health
@@ -300,26 +251,52 @@ class Snake():
         return jsonobj
 
 
-    def start(self):
-        if "start" in self.kwargs.keys():
-            self.kwargs["start"]()
+    def move(self, data):
+        data["you"] = self.jsonize()
+        try:
+            if self._move:
+                r = self._move(data)
+            elif self.server:
+                url = self.server + "/move"
+                r = requests.post(url, json=data).json()
+        except Exception as e:
+            traceback.print_exc()
+            r = {"move": "up"}
+        self._move_snake(r["move"])
 
 
-    # Relays death to the snake
-    def end(self, winner=False):
-        if "end" in self.kwargs.keys():
-            self.kwargs["end"](winner)
+    def start(self, data):
+        data["you"] = self.jsonize()
+        try:
+            if self._start:
+                self._start(data)
+            elif self.server:
+                url = self.server + "/start"
+                requests.post(url, json=data)
+        except Exception as e:
+            traceback.print_exc()
 
 
-    # Moves the snake
-    def move(self, move):
+    def end(self, data):
+        data["you"] = self.jsonize()
+        try:
+            if self._end:
+                self._end(data)
+            elif self.server:
+                url = self.server + "/end"
+                requests.post(url, json=data)
+        except Exception as e:
+            traceback.print_exc()
+
+
+    def _move_snake(self, mv):
         head = self.body[0]
 
-        if(move == "left"):
+        if(mv == "left"):
             self.body = [(head[0]-1, head[1])] + self.body
-        elif(move == "right"):
+        elif(mv == "right"):
             self.body = [(head[0]+1, head[1])] + self.body
-        elif(move == "down"):
+        elif(mv == "down"):
             self.body =[(head[0], head[1]+1)] + self.body
         else:
             self.body = [(head[0], head[1]-1)] + self.body
@@ -335,6 +312,12 @@ class Snake():
         self.body = []
         self.health = 100
         self.ate_food = False
+
+
+
+
+
+
 
 
 def verbose_print(*args, **kwargs):
@@ -402,7 +385,7 @@ def parse_args(sysargs=None):
     return args
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
 
     if args.games == 1 or args.suppress_board:
@@ -417,3 +400,7 @@ if __name__ == "__main__":
 
         for winner in set(winners):
             print("{}, Games Won: {}".format(winner, sum([1 for s in winners if s == winner])))
+
+
+if __name__ == "__main__":
+    main()
